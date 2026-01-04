@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulator pH Laboratorium Realistis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --glass-border: rgba(255, 255, 255, 0.4);
+            --glass-refraction: rgba(200, 230, 255, 0.1);
+        }
+
+        body {
+            background: radial-gradient(circle at center, #1e293b, #0f172a);
+            min-height: screen;
+            font-family: 'Inter', system-ui, sans-serif;
+            color: white;
+        }
+
+        
+        .beaker-wrapper {
+            position: relative;
+            width: 240px;
+            height: 300px;
+            margin: 0 auto;
+            perspective: 1000px;
+        }
+
+        
+        .beaker-glass {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 90%;
+            background: linear-gradient(135deg, var(--glass-refraction), rgba(255, 255, 255, 0.05));
+            border: 2px solid var(--glass-border);
+            border-top: none;
+            border-radius: 0 0 20px 20px;
+            backdrop-filter: blur(4px);
+            z-index: 10;
+            box-shadow: 
+                inset -10px 0 20px rgba(255, 255, 255, 0.1),
+                inset 10px 0 20px rgba(0, 0, 0, 0.2),
+                0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+
+        .beaker-rim {
+            position: absolute;
+            top: 5%;
+            left: -2%;
+            width: 104%;
+            height: 30px;
+            border: 2px solid var(--glass-border);
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            z-index: 15;
+        }
+
+        
+        .liquid-body {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 75%;
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 0 0 18px 18px;
+            overflow: hidden;
+        }
+
+        
+        .liquid-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, 
+                rgba(255, 255, 255, 0.3) 0%, 
+                transparent 20%, 
+                rgba(0, 0, 0, 0.2) 100%);
+        }
+
+        
+        .liquid-surface {
+            position: absolute;
+            top: -15px;
+            left: 0;
+            width: 100%;
+            height: 30px;
+            border-radius: 50%;
+            background: inherit;
+            filter: brightness(1.2);
+            box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+       
+        .glass-reflection {
+            position: absolute;
+            top: 10%;
+            right: 15%;
+            width: 15%;
+            height: 70%;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.2), transparent);
+            border-radius: 50px;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+       
+        .bubbles {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 11;
+            pointer-events: none;
+        }
+
+        .bubble {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            bottom: -10px;
+            animation: rise 4s infinite ease-in;
+        }
+
+        @keyframes rise {
+            0% { transform: translateY(0) scale(1); opacity: 0; }
+            50% { opacity: 0.6; }
+            100% { transform: translateY(-200px) scale(0.5); opacity: 0; }
+        }
+
+       
+        input[type=range] {
+            -webkit-appearance: none;
+            background: #334155;
+            height: 8px;
+            border-radius: 4px;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+            border: 2px solid #64748b;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-6">
+<a href="namadomain.com">menuju ke halaman web</a>
+    <div class="max-w-xl w-full flex flex-col items-center">
+       
+        <div class="bg-slate-800/50 border border-slate-700 p-10 rounded-[2.5rem] backdrop-blur-md w-full shadow-2xl">
+            
+            <h1 class="text-3xl font-light text-center mb-8 tracking-tighter">SIMULASI <span class="font-bold text-emerald-400">pH</span></h1>
+
+            <div class="beaker-wrapper mb-12">
+                <div class="beaker-rim"></div>
+                <div class="beaker-glass">
+                    <div id="liquid" class="liquid-body">
+                        <div class="liquid-surface"></div>
+                        <div class="liquid-overlay"></div>
+                        <div id="bubbles" class="bubbles"></div>
+                    </div>
+                </div>
+                <div class="glass-reflection"></div>
+                
+                
+                <div class="absolute left-4 top-[20%] bottom-[10%] w-4 flex flex-col justify-between z-30 opacity-40">
+                    <div class="w-full h-px bg-white"></div>
+                    <div class="w-2/3 h-px bg-white"></div>
+                    <div class="w-full h-px bg-white"></div>
+                    <div class="w-2/3 h-px bg-white"></div>
+                    <div class="w-full h-px bg-white"></div>
+                </div>
+            </div>
+
+          
+            <div class="text-center space-y-2 mb-10">
+                <div id="ph-val" class="text-7xl font-mono font-bold transition-all duration-500 scale-110">7.0</div>
+                <div id="ph-tag" class="inline-block px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest bg-slate-700">NETRAL</div>
+                <p id="ph-desc" class="text-slate-400 text-sm mt-2 italic">Keadaan seimbang (Air Murni)</p>
+            </div>
+
+         
+            <div class="space-y-6">
+                <div class="relative pt-1">
+                    <input type="range" id="ph-slider" min="0" max="14" step="0.1" value="7" class="w-full cursor-pointer">
+                    <div class="flex justify-between text-[10px] font-bold text-slate-500 mt-3 uppercase tracking-tighter">
+                        <span class="text-red-400">Asam Kuat (0)</span>
+                        <span>Netral (7)</span>
+                        <span class="text-purple-400">Basa Kuat (14)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <p class="mt-6 text-slate-500 text-xs">Simulasi Visual pH • By Rexumms</p>
+    </div>
+
+    <script>
+        const slider = document.getElementById('ph-slider');
+        const liquid = document.getElementById('liquid');
+        const phVal = document.getElementById('ph-val');
+        const phTag = document.getElementById('ph-tag');
+        const phDesc = document.getElementById('ph-desc');
+        const bubblesContainer = document.getElementById('bubbles');
+
+        const phData = [
+            { c: "#ff1e00", s: "Asam Sangat Kuat", d: "Asam Baterai / HCl" },
+            { c: "#ff4e00", s: "Asam Kuat", d: "Asam Lambung" },
+            { c: "#ff8a00", s: "Asam Kuat", d: "Lemon / Cuka" },
+            { c: "#ffc600", s: "Asam Sedang", d: "Jus Jeruk / Soda" },
+            { c: "#f6ff00", s: "Asam Lemah", d: "Tomat / Hujan Asam" },
+            { c: "#b4ff00", s: "Asam Lemah", d: "Kopi Hitam" },
+            { c: "#6cff00", s: "Asam Sangat Lemah", d: "Susu Segar" },
+            { c: "#00ff42", s: "Netral", d: "Air Murni / Darah" },
+            { c: "#00ffb4", s: "Basa Sangat Lemah", d: "Air Laut / Baking Soda" },
+            { c: "#00f0ff", s: "Basa Lemah", d: "Obat Maag (Antasida)" },
+            { c: "#00a2ff", s: "Basa Lemah", d: "Susu Magnesia" },
+            { c: "#004eff", s: "Basa Sedang", d: "Larutan Amonia" },
+            { c: "#4e00ff", s: "Basa Kuat", d: "Air Sabun" },
+            { c: "#9c00ff", s: "Basa Kuat", d: "Pemutih Pakaian" },
+            { c: "#e400ff", s: "Basa Sangat Kuat", d: "Pembersih Saluran Air" }
+        ];
+
+        function createBubbles() {
+            bubblesContainer.innerHTML = '';
+            for(let i = 0; i < 8; i++) {
+                const b = document.createElement('div');
+                b.className = 'bubble';
+                b.style.left = Math.random() * 100 + '%';
+                b.style.width = b.style.height = Math.random() * 8 + 4 + 'px';
+                b.style.animationDelay = Math.random() * 4 + 's';
+                bubblesContainer.appendChild(b);
+            }
+        }
+
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        }
+
+        function update() {
+            const val = parseFloat(slider.value);
+            const low = Math.floor(val);
+            const high = Math.ceil(val);
+            const ratio = val - low;
+
+            const c1 = hexToRgb(phData[low].c);
+            const c2 = hexToRgb(phData[high].c);
+
+            const r = Math.round(c1.r + (c2.r - c1.r) * ratio);
+            const g = Math.round(c1.g + (c2.g - c1.g) * ratio);
+            const b = Math.round(c1.b + (c2.b - c1.b) * ratio);
+            
+            const finalColor = `rgb(${r}, ${g}, ${b})`;
+            
+            
+            liquid.style.backgroundColor = finalColor;
+            phVal.style.color = finalColor;
+            phVal.style.textShadow = `0 0 30px rgba(${r}, ${g}, ${b}, 0.5)`;
+            phVal.innerText = val.toFixed(1);
+            
+            const info = phData[Math.round(val)];
+            phTag.innerText = info.s;
+            phTag.style.color = finalColor;
+            phDesc.innerText = info.d;
+
+           
+            if (val < 2 || val > 12) {
+                if(bubblesContainer.children.length < 15) createBubbles();
+            } else {
+                if(bubblesContainer.children.length > 8) bubblesContainer.lastChild.remove();
+            }
+        }
+
+        slider.addEventListener('input', update);
+        createBubbles();
+        update();
+    </script>
+</body>
+</html>
